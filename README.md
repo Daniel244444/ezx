@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         B2
+// @name         B3
 // @namespace    http://tampermonkey.net/
-// @version      102
-// @description  B2
-// @author       B2
+// @version      0.3
+// @description  b3
+// @author       B3
 // @match        https://www.bing.com/*
 // @grant        none
 // ==/UserScript==
@@ -22,20 +22,15 @@
         "Physics", "Mars", "Satellites", "AI", "Blockchain", "Big Data"
     ];
 
-    const searchBox = document.querySelector('textarea.b_searchbox') || document.querySelector('input.b_searchbox');
-    const searchButton = document.querySelector('input.b_searchboxSubmit');
-    if (!searchBox || !searchButton) return;
+    function getRandomDelay(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    }
 
-    const currentIndex = parseInt(localStorage.getItem('currentSearchIndex') || '0', 10);
-    const nextWord = searchWords[currentIndex];
-    const nextIndex = (currentIndex + 1) % searchWords.length;
-    localStorage.setItem('currentSearchIndex', nextIndex);
-
-    async function typeWord(word) {
+    async function typeWord(searchBox, word) {
         searchBox.value = "";
         for (const char of word) {
             searchBox.value += char;
-            await delay(100 + Math.random() * 150);
+            await delay(getRandomDelay(100, 300));
         }
     }
 
@@ -44,29 +39,42 @@
     }
 
     function randomScroll() {
-        window.scrollTo({
-            top: Math.random() * 500,
-            behavior: 'smooth'
+        const scrollHeight = document.body.scrollHeight;
+        const randomPosition = Math.random() * scrollHeight * 0.5;
+        window.scrollTo({ top: randomPosition, behavior: 'smooth' });
+    }
+
+    function highlightWord(word) {
+        const regex = new RegExp(word, "gi");
+        document.body.innerHTML = document.body.innerHTML.replace(regex, match => {
+            const color = Math.random() > 0.5 ? 'red' : 'green';
+            return `<span style='color:${color};'>${match}</span>`;
         });
     }
 
     async function performSearch() {
-        await delay(2000 + Math.random() * 3000);
-        await typeWord(nextWord);
-        await delay(1000 + Math.random() * 2000);
+        const searchBox = document.querySelector('textarea.b_searchbox');
+        const searchButton = document.querySelector('input.b_searchboxSubmit');
+        if (!searchBox || !searchButton) return;
+
+        const currentIndex = parseInt(localStorage.getItem('currentSearchIndex') || '0', 10);
+        const nextWord = searchWords[currentIndex];
+        const nextIndex = (currentIndex + 1) % searchWords.length;
+        localStorage.setItem('currentSearchIndex', nextIndex);
+
+        await delay(getRandomDelay(2000, 5000));
+        await typeWord(searchBox, nextWord);
+        await delay(getRandomDelay(1500, 3000));
         searchButton.click();
         randomScroll();
 
         setTimeout(() => {
-            window.location.reload();
-        }, 5000 + Math.random() * 3000);
+            highlightWord(nextWord);
+            setTimeout(() => {
+                window.location.reload();
+            }, getRandomDelay(8000, 15000));
+        }, getRandomDelay(5000, 10000));
     }
 
-    if (!localStorage.getItem('searchInProgress')) {
-        localStorage.setItem('searchInProgress', 'true');
-        performSearch().then(() => {
-            localStorage.removeItem('searchInProgress');
-        });
-    }
-
+    performSearch().catch(err => console.error("Error in script execution:", err));
 })();
